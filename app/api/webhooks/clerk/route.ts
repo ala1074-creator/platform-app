@@ -2,9 +2,10 @@ export const dynamic = "force-dynamic";
 import { Webhook } from 'svix'
 import { headers } from 'next/headers'
 import { WebhookEvent } from '@clerk/nextjs/server'
-import db from '@/lib/db'
+import { getPrisma } from "@/lib/db";
 
 export async function POST(req: Request) {
+  const db = getPrisma(); 
   // المفتاح السري الذي سنحضره من Clerk لاحقاً
   const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET
 
