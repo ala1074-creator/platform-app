@@ -1,0 +1,72 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  phone     String?  @unique
+  role      Role     @default(STUDENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  devices   Device[]
+  purchases Purchase[]
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+model Device {
+  id           String   @id @default(uuid())
+  userId       String
+  deviceFinger String   @unique
+  deviceName   String?
+  isApproved   Boolean  @default(true)
+  lastUsedAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  price       Float
+  videoUrl    String?
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  purchases   Purchase[]
+}
+
+model Purchase {
+  id            String         @id @default(uuid())
+  userId        String
+  courseId      String
+  amount        Float
+  status        PaymentStatus  @default(PENDING)
+  provider      String
+  transactionId String?        @unique
+  createdAt     DateTime       @default(now())
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course        Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
