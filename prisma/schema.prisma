@@ -1,29 +1,43 @@
-datasource db {
-  provider = "postgresql"
-}
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
 }
 
-model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?
-  phone     String?  @unique
-  role      Role     @default(STUDENT)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+datasource db {
+  provider = "postgresql"
+  
+}
 
-  devices   Device[]
-  purchases Purchase[]
+model User {
+  id                 String   @id @default(uuid())
+  clerkId            String   @unique  // حاسم لربط حساب الطالب بنظام الحماية
+  email              String   @unique
+  
+  // بيانات شاشة الاستقبال
+  firstName          String?
+  fatherName         String?
+  birthYear          String?
+  onboardingComplete Boolean  @default(false) 
+  
+  role               Role     @default(STUDENT)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // العلاقات (Relations)
+  devices            Device[]
+  purchases          Purchase[]
+  usedCodes          CourseCode[] // الكروت التي استخدمها الطالب
 }
 
 enum Role {
   STUDENT
+  TEACHER   // أضفنا صلاحية الأستاذ
   ADMIN
 }
 
+// جدول بصمة الأجهزة لمنع مشاركة الحسابات
 model Device {
   id           String   @id @default(uuid())
   userId       String
@@ -36,6 +50,7 @@ model Device {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+// جدول الكورسات
 model Course {
   id          String   @id @default(uuid())
   title       String
@@ -47,20 +62,37 @@ model Course {
   updatedAt   DateTime @updatedAt
 
   purchases   Purchase[]
+  codes       CourseCode[] // الأكواد التابعة لهذا الكورس
 }
 
+// جدول الكروت والأكواد المطبوعة (نظام الدفع الفعلي للمكتبات)
+model CourseCode {
+  id        String    @id @default(uuid())
+  code      String    @unique // الكود السري المطبوع على البطاقة
+  courseId  String    
+  course    Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  isUsed    Boolean   @default(false) 
+  userId    String?   
+  user      User?     @relation(fields: [userId], references: [id])
+  
+  usedAt    DateTime? 
+  createdAt DateTime  @default(now())
+}
+
+// جدول الدفع الإلكتروني (نحتفظ به للمستقبل)
 model Purchase {
-  id            String         @id @default(uuid())
+  id            String        @id @default(uuid())
   userId        String
   courseId      String
   amount        Float
-  status        PaymentStatus  @default(PENDING)
+  status        PaymentStatus @default(PENDING)
   provider      String
-  transactionId String?        @unique
-  createdAt     DateTime       @default(now())
+  transactionId String?       @unique
+  createdAt     DateTime      @default(now())
 
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course        Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course        Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
 }
